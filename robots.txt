@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Карта сайта
+Sitemap: https://TihonV.github.io/dzenwiki-explorer/sitemap.xml
+
+# Запрещаем доступ к служебным файлам (если есть)
+Disallow: /node_modules/
+Disallow: /server.js
+Disallow: /.git/
+
+# Можно разрешить всё — GitHub Pages это статический хостинг
+# Все пользовательские данные хранятся только в localStorage
