@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌌📚 DzenWiki Explorer</title>
+  <meta name="description" content="Платформа для поиска видео в Дзене и статей в Википедии.">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <style>
+    /* (ваш CSS из предыдущего кода) */
+  </style>
+</head>
+<body class="mode-dzen">
+  <!-- (ваш HTML из предыдущего кода) -->
+  <div class="container">
+    <header>
+      <div class="logo" id="logo"><i class="fas fa-blog"></i> Dzen Explorer</div>
+      <div class="controls" id="dzenControls">
+        <button class="btn" id="toggleModeBtn"><i class="fas fa-exchange-alt"></i> Переключить режим</button>
+        <button class="btn" id="hideBtn"><i class="fas fa-user-secret"></i> Скрыть</button>
+        <!-- Кнопка синхронизации появится здесь -->
+      </div>
+    </header>
+    <!-- (остальной HTML) -->
+    <div id="dzenMode">
+      <!-- (ваш HTML Дзен) -->
+      <div id="preview3d"></div> <!-- Контейнер для 3D -->
+    </div>
+    <!-- (остальной HTML) -->
+  </div>
+  <!-- (остальные элементы UI) -->
+
+  <script>
+    // (ваш предыдущий JavaScript) ------------------------------------
+
+    // --- НОВЫЙ КОД ДЛЯ 3D ---
+    function init3DAnimation() {
+      const container = document.getElementById('preview3d');
+      if (!container) return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, container.clientWidth / 180, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ alpha: true });
+      renderer.setSize(container.clientWidth, 180);
+      container.innerHTML = '';
+      container.appendChild(renderer.domElement);
+
+      const light = new THREE.AmbientLight(0xffffff, 1);
+      scene.add(light);
+
+      const loader = new THREE.GLTFLoader();
+      loader.load('model.glb', (gltf) => {
+        scene.add(gltf.scene);
+        animate();
+      }, undefined, (error) => {
+        console.error('Ошибка загрузки 3D-модели:', error);
+        // Заглушка
+        const geometry = new THREE.TorusKnotGeometry(0.8, 0.3, 100, 16);
+        const material = new THREE.MeshPhongMaterial({ color: 0x0077ff });
+        const shape = new THREE.Mesh(geometry, material);
+        scene.add(shape);
+        animate();
+      });
+
+      camera.position.z = 3;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (scene.children.find(c => c.isObject3D)) {
+          scene.children.find(c => c.isObject3D).rotation.x += 0.01;
+          scene.children.find(c => c.isObject3D).rotation.y += 0.01;
+        }
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener('resize', () => {
+        renderer.setSize(container.clientWidth, 180);
+        camera.aspect = container.clientWidth / 180;
+        camera.updateProjectionMatrix();
+      });
+    }
+
+    // --- НОВЫЙ КОД ДЛЯ Google Drive ---
+    let gapiLoaded = false;
+    let isSignedIn = false;
+
+    function initGoogleDrive() {
+      gapi.load('client:auth2', () => {
+        gapiLoaded = true;
+        gapi.client.init({
+          apiKey: 'YOUR_BROWSER_API_KEY',
+          clientId: 'YOUR_CLIENT_ID',
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+          scope: 'https://www.googleapis.com/auth/drive.file'
+        }).then(() => {
+          const authInstance = gapi.auth2.getAuthInstance();
+          authInstance.isSignedIn.listen(updateSignInStatus);
+          updateSignInStatus(authInstance.isSignedIn.get());
+        });
+      });
+    }
+
+    function updateSignInStatus(isSignedInState) {
+      isSignedIn = isSignedInState;
+      if (isSignedInState) {
+        showToast("✅ Вход в Google выполнен");
+      }
+    }
+
+    function syncBookmarksToDrive() {
+      if (!isSignedIn) {
+        showToast("❌ Сначала войдите в Google");
+        return;
+      }
+      const bookmarks = JSON.parse(localStorage.getItem('dzenBookmarks') || '[]');
+      const content = JSON.stringify(bookmarks, null, 2);
+
+      const boundary = 'dzenwikiboundary';
+      const delimiter = "\r\n--" + boundary + "\r\n";
+      const close_delim = "\r\n--" + boundary + "--";
+
+      const metadata = {
+        name: 'dzen-bookmarks.json',
+        parents: ['appDataFolder']
+      };
+
+      const multipartRequestBody =
+        delimiter +
+        'Content-Type: application/json\r\n\r\n' +
+        JSON.stringify(metadata) +
+        delimiter +
+        'Content-Type: application/json\r\n\r\n' +
+        content +
+        close_delim;
+
+      gapi.client.request({
+        path: '/upload/drive/v3/files',
+        method: 'POST',
+        params: { uploadType: 'multipart' },
+        headers: { 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
+        body: multipartRequestBody
+      }).then(() => showToast("💾 Закладки синхронизированы"));
+    }
+
+    // --- ВСТРАИВАНИЕ В ИНТЕРФЕЙС ---
+    function initDzen() {
+      // ... ваш предыдущий код ...
+
+      // Инициализация 3D
+      init3DAnimation();
+
+      // Инициализация Google Drive
+      initGoogleDrive();
+
+      // Добавляем кнопку синхронизации
+      const syncBtn = document.createElement('button');
+      syncBtn.className = 'btn';
+      syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Синхронизировать';
+      syncBtn.onclick = syncBookmarksToDrive;
+      document.getElementById('dzenControls').appendChild(syncBtn);
+    }
+
+    // --- PWA Registration ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js');
+      });
+    }
+
+    // --- Запуск ---
+    init();
+  </script>
+</body>
+</html>
