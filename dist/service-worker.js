@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dzenwiki-v1.0';
+cconst CACHE_NAME = 'dzenwiki-v1.0';
 const urlsToCache = [
   '/',
   '/index.html',
