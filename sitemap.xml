@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Главная страница -->
+  <url>
+    <loc>https://TihonV.github.io/dzenwiki-explorer/</loc>
+    <lastmod>2025-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Раздел Дзен -->
+  <url>
+    <loc>https://TihonV.github.io/dzenwiki-explorer/#mode=dzen</loc>
+    <lastmod>2025-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Раздел Википедия -->
+  <url>
+    <loc>https://TihonV.github.io/dzenwiki-explorer/#mode=wiki</loc>
+    <lastmod>2025-11-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Политика конфиденциальности (если будете добавлять) -->
+  <!--
+  <url>
+    <loc>https://TihonV.github.io/dzenwiki-explorer/privacy.html</loc>
+    <lastmod>2025-11-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  -->
+
+</urlset>
